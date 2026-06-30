@@ -11,12 +11,6 @@ const uploadOnCloudinary = async (localFilePath) => {
             api_secret: process.env.CLOUDINARY_API_SECRET,
         });
 
-        console.log("Cloudinary Config:", {
-            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-            api_key: process.env.CLOUDINARY_API_KEY,
-            api_secret_exists: !!process.env.CLOUDINARY_API_SECRET,
-        });
-
         const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "auto",
         });
@@ -27,9 +21,6 @@ const uploadOnCloudinary = async (localFilePath) => {
 
         return response;
     } catch (error) {
-        console.log("Cloudinary Upload Error:");
-        console.dir(error, { depth: null });
-
         if (localFilePath && fs.existsSync(localFilePath)) {
             fs.unlinkSync(localFilePath);
         }
