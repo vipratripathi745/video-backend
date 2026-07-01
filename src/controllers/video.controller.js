@@ -1,10 +1,8 @@
-import fs from "fs";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
-
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
@@ -24,22 +22,13 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Thumbnail is required");
     }
 
-
-    console.log("Video Path:", videoFileLocalPath);
-    console.log("Thumbnail Path:", thumbnailLocalPath);
-
-    console.log("Video Size:", fs.statSync(videoFileLocalPath).size);
-    console.log("Thumbnail Size:", fs.statSync(thumbnailLocalPath).size);
-
     const videoFile = await uploadOnCloudinary(videoFileLocalPath);
-    console.log("Video Upload:", videoFile);
-
-    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
-    console.log("Thumbnail Upload:", thumbnail);
 
     if (!videoFile) {
         throw new ApiError(400, "Video upload failed");
     }
+
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
     if (!thumbnail) {
         throw new ApiError(400, "Thumbnail upload failed");
@@ -64,7 +53,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
 });
 
 const getAllVideos = asyncHandler(async (req, res) => {
-
     const videos = await Video.find();
 
     return res.status(200).json(
@@ -98,32 +86,33 @@ const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { title, description } = req.body;
 
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    if (title) {
+        video.title = title;
+    }
+
+    if (description) {
+        video.description = description;
+    }
+
     const thumbnailLocalPath = req.file?.path;
 
-    let thumbnail;
-
     if (thumbnailLocalPath) {
-        thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
-    }
+        const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
-    const updateFields = {
-        title,
-        description,
-    };
-
-    if (thumbnail) {
-        updateFields.thumbnail = thumbnail.secure_url;
-    }
-
-    const video = await Video.findByIdAndUpdate(
-        videoId,
-        {
-            $set: updateFields,
-        },
-        {
-            new: true,
+        if (!thumbnail) {
+            throw new ApiError(400, "Thumbnail upload failed");
         }
-    );
+
+        video.thumbnail = thumbnail.secure_url;
+    }
+
+    await video.save();
 
     return res.status(200).json(
         new ApiResponse(
@@ -137,7 +126,13 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
-    await Video.findByIdAndDelete(videoId);
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    await video.deleteOne();
 
     return res.status(200).json(
         new ApiResponse(
