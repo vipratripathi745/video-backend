@@ -39,7 +39,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         thumbnail: thumbnail.secure_url,
         title,
         description,
-        duration: videoFile.duration || 0,
+        duration: Number(videoFile.duration) || 0,
         owner: req.user?._id,
     });
 
@@ -53,7 +53,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
 });
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const videos = await Video.find();
+    const videos = await Video.find({
+        isPublished: true,
+    });
 
     return res.status(200).json(
         new ApiResponse(
@@ -90,6 +92,10 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     if (!video) {
         throw new ApiError(404, "Video not found");
+    }
+
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this video");
     }
 
     if (title) {
@@ -132,6 +138,10 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Video not found");
     }
 
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this video");
+    }
+
     await video.deleteOne();
 
     return res.status(200).json(
@@ -150,6 +160,10 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     if (!video) {
         throw new ApiError(404, "Video not found");
+    }
+
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this video");
     }
 
     video.isPublished = !video.isPublished;

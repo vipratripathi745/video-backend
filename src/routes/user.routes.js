@@ -1,5 +1,4 @@
 import { Router } from "express";
-
 import {
     registerUser,
     loginUser,
@@ -11,12 +10,12 @@ import {
     updateUserAvatar,
     updateUserCoverImage,
 } from "../controllers/user.controller.js";
-
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
+// Public Routes
 router.route("/register").post(
     upload.fields([
         {
@@ -33,12 +32,13 @@ router.route("/register").post(
 
 router.route("/login").post(loginUser);
 
+router.route("/refresh-token").post(refreshAccessToken);
+
+// Protected Routes
 router.route("/logout").post(
     verifyJWT,
     logoutUser
 );
-
-router.route("/refresh-token").post(refreshAccessToken);
 
 router.route("/change-password").post(
     verifyJWT,
