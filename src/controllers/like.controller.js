@@ -87,7 +87,37 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 });
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
+    const { tweetId } = req.params;
 
+    const existedLike = await Like.findOne({
+        tweet: tweetId,
+        likedBy: req.user?._id,
+    });
+
+    if (existedLike) {
+        await existedLike.deleteOne();
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {},
+                "Tweet unliked successfully"
+            )
+        );
+    }
+
+    await Like.create({
+        tweet: tweetId,
+        likedBy: req.user?._id,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            "Tweet liked successfully"
+        )
+    );
 });
 
 const getLikedVideos = asyncHandler(async (req, res) => {
