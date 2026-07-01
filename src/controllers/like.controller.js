@@ -1,5 +1,4 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Like } from "../models/like.model.js";
 
@@ -37,26 +36,15 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     );
 });
 
-
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
-
-    console.log("===== toggleCommentLike =====");
-    console.log("Comment ID:", commentId);
-    console.log("User ID:", req.user?._id);
-
-    console.log("Before findOne");
 
     const existedLike = await Like.findOne({
         comment: commentId,
         likedBy: req.user?._id,
     });
 
-    console.log("After findOne");
-    console.log(existedLike);
-
     if (existedLike) {
-        console.log("Deleting Like");
         await existedLike.deleteOne();
 
         return res.status(200).json(
@@ -68,14 +56,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         );
     }
 
-    console.log("Creating Like");
-
     await Like.create({
         comment: commentId,
         likedBy: req.user?._id,
     });
-
-    console.log("Like Created");
 
     return res.status(200).json(
         new ApiResponse(
@@ -123,7 +107,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 const getLikedVideos = asyncHandler(async (req, res) => {
     const likedVideos = await Like.find({
         likedBy: req.user?._id,
-        video: { $ne: null }
+        video: { $ne: null },
     }).populate("video");
 
     const filteredVideos = likedVideos.filter(

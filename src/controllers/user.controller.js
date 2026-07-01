@@ -33,7 +33,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (
         [fullName, email, username, password].some(
-            (field) => field?.trim() === ""
+            (field) => !field || field.trim() === ""
         )
     ) {
         throw new ApiError(400, "All fields are required");
@@ -122,8 +122,9 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 
     const options = {
-        httpOnly: true,
-        secure: true,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
     };
 
     return res
@@ -157,8 +158,9 @@ const logoutUser = asyncHandler(async (req, res) => {
     );
 
     const options = {
-        httpOnly: true,
-        secure: true,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
     };
 
     return res
@@ -202,8 +204,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         }
 
         const options = {
-            httpOnly: true,
-            secure: true,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
         };
 
         const { accessToken, refreshToken } =
@@ -231,10 +234,19 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 });
 
+
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
 
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "Old password and new password are required");
+    }
+
     const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
 
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
@@ -244,7 +256,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
     user.password = newPassword;
 
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     return res.status(200).json(
         new ApiResponse(
@@ -270,6 +282,15 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
     if (!fullName || !email) {
         throw new ApiError(400, "All fields are required");
+    }
+
+    const existedUser = await User.findOne({
+        email,
+        _id: { $ne: req.user?._id },
+    });
+
+    if (existedUser) {
+        throw new ApiError(409, "Email already exists");
     }
 
     const user = await User.findByIdAndUpdate(
@@ -361,6 +382,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         )
     );
 });
+
 export {
     registerUser,
     loginUser,
@@ -372,3 +394,4 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
 };
+
